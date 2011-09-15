@@ -1,5 +1,5 @@
 class CompareProductsController < Spree::BaseController
-  COMPARE_LIMIT = 4
+  COMPARE_LIMIT = 7
   before_filter :find_taxon, :only => [:show, :add]
 
   helper :products, :taxons
@@ -14,7 +14,7 @@ class CompareProductsController < Spree::BaseController
 
   def add
     product = Product.find_by_permalink(params[:id])
-    if product && (product.taxons.map(&:id).include?(@taxon.try(:id)) || @comparable_products.size < 1)
+    if product && (product.taxon == @taxon || @comparable_products.size < 1)
       if session[:comparable_product_ids].include?(product.id)
         flash[:notice] = I18n.t(:already_in_list, :product => product.name, :scope => :compare_products)
       else
@@ -31,7 +31,7 @@ class CompareProductsController < Spree::BaseController
       flash[:error] = I18n.t(:invalid_taxon, :scope => :compare_products)
     end
     respond_to do |format|
-      format.html { redirect_back_or_default(products_path) }
+      format.html { redirect_back_or_default(product) }
       format.js { render :layout => false }
     end
   end
@@ -45,7 +45,7 @@ class CompareProductsController < Spree::BaseController
       flash[:notice] = I18n.t(:removed_from_comparsion, :product => product.name, :scope => :compare_products)
     end
     respond_to do |format|
-      format.html { redirect_back_or_default(products_path) }
+      format.html { redirect_back_or_default(product) }
       format.js { render :layout => false }
     end
   end
@@ -54,22 +54,29 @@ class CompareProductsController < Spree::BaseController
     session[:comparable_product_ids] = []
     flash[:notice] = I18n.t(:comparsion_cleared, :scope => :compare_products)
     respond_to do |format|
-      format.html { redirect_back_or_default(products_path) }
+      format.html { redirect_back_or_default(catalog_path) }
       format.js { render :layout => false }
     end
+  end
+  
+  def similar
+    products_ids = params[:compare_products_ids] << params[:id]
+    @similar_products = Product.where(:id => products_ids)
+    @properties = @similar_products.includes(:product_properties => :property).map(&:properties).flatten.uniq
+    @taxon = @similar_products.first.taxon
+    render :show
   end
 
   private
 
   def find_taxon
     if @comparable_products.size > 1
-      @taxon = @comparable_products.inject(@comparable_products[0].taxons) { |t, p| t & p.taxons }.select { |t| t.is_comparable? }.first
-
+      @taxon = @comparable_products[0].taxon if @comparable_products[0].taxon == @comparable_products.last.taxon && @comparable_products.last.taxon.is_comparable?
       if @taxon.nil?
         flash[:error] = I18n.t(:invalid_taxon, :scope => :compare_products)
       end
     elsif @comparable_products.size == 1
-      @taxon = @comparable_products[0].taxons.select { |t| t.is_comparable? }.first
+      @taxon = @comparable_products[0].taxon if @comparable_products[0].taxon.is_comparable?
     end
   end
 end
