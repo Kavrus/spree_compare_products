@@ -1,6 +1,6 @@
 class CompareProductsController < Spree::BaseController
   COMPARE_LIMIT = 7
-  before_filter :find_taxon, :only => [:show, :add]
+  before_filter :find_taxon, :only => :show
 
   helper :products, :taxons
 
@@ -14,7 +14,7 @@ class CompareProductsController < Spree::BaseController
 
   def add
     product = Product.find_by_permalink(params[:id])
-    if product && (product.taxon == @taxon || @comparable_products.size < 1)
+    if product && product.taxon.is_comparable?
       if session[:comparable_product_ids].include?(product.id)
         flash[:notice] = I18n.t(:already_in_list, :product => product.name, :scope => :compare_products)
       else
@@ -27,8 +27,7 @@ class CompareProductsController < Spree::BaseController
         end
       end
     else
-      session[:comparable_product_ids].delete(product.id)
-      flash[:error] = I18n.t(:invalid_taxon, :scope => :compare_products)
+      flash[:error] = I18n.t(:taxon_not_comparable, :scope => :compare_products)
     end
     respond_to do |format|
       format.html { redirect_back_or_default(product) }
@@ -62,8 +61,8 @@ class CompareProductsController < Spree::BaseController
   def similar
     products_ids = params[:compare_products_ids] << params[:id]
     @similar_products = Product.where(:id => products_ids)
-    @properties = @similar_products.includes(:product_properties => :property).map(&:properties).flatten.uniq
     @taxon = @similar_products.first.taxon
+    @properties = @similar_products.includes(:product_properties => :property).map(&:properties).flatten.uniq
     render :show
   end
 
@@ -71,12 +70,12 @@ class CompareProductsController < Spree::BaseController
 
   def find_taxon
     if @comparable_products.size > 1
-      @taxon = @comparable_products[0].taxon if @comparable_products[0].taxon == @comparable_products.last.taxon && @comparable_products.last.taxon.is_comparable?
+      @taxon = @comparable_products.last.taxon if @comparable_products.last.taxon.is_comparable?
       if @taxon.nil?
         flash[:error] = I18n.t(:invalid_taxon, :scope => :compare_products)
       end
     elsif @comparable_products.size == 1
-      @taxon = @comparable_products[0].taxon if @comparable_products[0].taxon.is_comparable?
+      @taxon = @comparable_products.first.taxon if @comparable_products.first.taxon.is_comparable?
     end
   end
 end
