@@ -44,8 +44,23 @@ class CompareProductsController < Spree::BaseController
       flash[:notice] = I18n.t(:removed_from_comparsion, :product => product.name, :scope => :compare_products)
     end
     respond_to do |format|
-      format.html { redirect_back_or_default(product) }
+      format.html do
+        if request.referer.include?('compare_products') && session[:comparable_product_ids].size > 1
+          redirect_to compare_products_url
+        else
+          redirect_back_or_default(product)
+        end
+      end
       format.js { render :layout => false }
+    end
+  end
+  
+  def remove_similar
+    session[:similar_products_ids].delete(params[:id])
+    if session[:similar_products_ids].size > 1
+      redirect_to request.referer
+    else
+      redirect_to product_url(session[:similar_products_ids].first)
     end
   end
 
@@ -59,9 +74,10 @@ class CompareProductsController < Spree::BaseController
   end
   
   def similar
-    products_ids = params[:compare_products_ids] << params[:id]
-    @similar_products = Product.where(:id => products_ids)
-    @taxon = @similar_products.first.taxon
+    unless request.referer.include?("compare_products/similar")
+      session[:similar_products_ids] = Product.find(params[:id]).similar_products.map(&:id).map(&:to_s).unshift(params[:id])
+    end
+    @similar_products = Product.where(:id => session[:similar_products_ids])
     @properties = @similar_products.includes(:product_properties => :property).map(&:properties).flatten.uniq
     render :show
   end
