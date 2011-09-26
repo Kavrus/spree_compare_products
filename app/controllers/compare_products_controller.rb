@@ -1,8 +1,8 @@
 class CompareProductsController < Spree::BaseController
+  include ProductsHelper
+  
   COMPARE_LIMIT = 7
   before_filter :find_taxon, :only => :show
-
-  helper :products, :taxons
 
   def show
     if @comparable_products.count > 1
@@ -16,14 +16,15 @@ class CompareProductsController < Spree::BaseController
     product = Product.find_by_permalink(params[:id])
     if product && product.taxon.is_comparable?
       if session[:comparable_product_ids].include?(product.id)
-        flash[:notice] = I18n.t(:already_in_list, :product => product.name, :scope => :compare_products)
+        flash.now[:notice] = I18n.t(:already_in_list, :product => product_title(product), :scope => :compare_products)
+        @already_in_list = "true"
       else
         if @comparable_products.size < COMPARE_LIMIT
           @added_product = product
           session[:comparable_product_ids] << product.id
-          flash[:notice] = I18n.t(:added_to_comparsion, :product => product.name, :scope => :compare_products)
+          flash.now[:notice] = I18n.t(:added_to_comparsion, :product => product_title(product), :scope => :compare_products)
         else
-          flash[:notice] = I18n.t(:limit_is_reached, :scope => :compare_products, :count => COMPARE_LIMIT)
+          flash.now[:notice] = I18n.t(:limit_is_reached, :scope => :compare_products, :count => COMPARE_LIMIT)
         end
       end
     else
@@ -31,7 +32,10 @@ class CompareProductsController < Spree::BaseController
     end
     respond_to do |format|
       format.html { redirect_back_or_default(product) }
-      format.js { render :layout => false }
+      format.js do
+        find_comparable_products
+        render :layout => false
+      end
     end
   end
 
@@ -41,7 +45,7 @@ class CompareProductsController < Spree::BaseController
     if product
       @deleted_product = product if session[:comparable_product_ids].include?(product.id)
       session[:comparable_product_ids].delete(product.id)
-      flash[:notice] = I18n.t(:removed_from_comparsion, :product => product.name, :scope => :compare_products)
+      flash.now[:notice] = I18n.t(:removed_from_comparsion, :product => product_title(product), :scope => :compare_products)
     end
     respond_to do |format|
       format.html do
@@ -75,7 +79,7 @@ class CompareProductsController < Spree::BaseController
   
   def similar
     unless request.referer.include?("compare_products/similar")
-      session[:similar_products_ids] = Product.find(params[:id]).similar_products.map(&:id).map(&:to_s).unshift(params[:id])
+      session[:similar_products_ids] = Product.find(params[:id]).similar_products.map{|p| p.id.to_s}.unshift(params[:id])
     end
     @similar_products = Product.where(:id => session[:similar_products_ids])
     @properties = @similar_products.includes(:product_properties => :property).map(&:properties).flatten.uniq

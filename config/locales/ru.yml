@@ -1,6 +1,7 @@
 ru:
   compare_products:
     add_to_comparison: "Добавить к сравнению"
+    remove_from_comparison: "Удалить из сравнения"
     added_to_comparsion: "%{product} добавлен к сравнению"
     already_in_list: "%{product} уже находится в списке сравниваемых товаров."
     comparable_container: "разрешить сравнение товаров"
