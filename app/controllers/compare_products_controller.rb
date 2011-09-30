@@ -6,7 +6,7 @@ class CompareProductsController < Spree::BaseController
 
   def show
     if @comparable_products.count > 1
-      @properties = @comparable_products.includes(:product_properties => :property).map(&:properties).flatten.uniq # We return the list of properties here so we can use them latter.
+      @properties = @comparable_products.map {|product| product.taxon.properties}.flatten.uniq
     else
       flash[:error] = I18n.t(:insufficient_data, :scope => :compare_products)
     end
@@ -81,8 +81,11 @@ class CompareProductsController < Spree::BaseController
     unless request.referer.include?("compare_products/similar")
       session[:similar_products_ids] = Product.find(params[:id]).similar_products.map{|p| p.id.to_s}.unshift(params[:id])
     end
+    
     @similar_products = Product.where(:id => session[:similar_products_ids])
-    @properties = @similar_products.includes(:product_properties => :property).map(&:properties).flatten.uniq
+    
+    @properties = @similar_products.map {|product| product.taxon.properties}.flatten.uniq
+    
     render :show
   end
 
