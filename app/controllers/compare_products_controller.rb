@@ -6,7 +6,16 @@ class CompareProductsController < Spree::BaseController
 
   def show
     if @comparable_products.count > 1
-      @properties = @comparable_products.map {|product| product.taxon.properties}.flatten.uniq
+      @properties = @comparable_products.map do |product|
+        product.taxon.properties.map do |prop|
+          if prop.type_uid == UID_SET_OF_PROPERTIES && prop.children.any?
+            prop.children
+          else
+            prop
+          end
+        end
+      end
+      @properties = @properties.flatten.uniq
     else
       flash[:error] = I18n.t(:insufficient_data, :scope => :compare_products)
     end
@@ -84,7 +93,16 @@ class CompareProductsController < Spree::BaseController
     
     @similar_products = Product.where(:id => session[:similar_products_ids])
     
-    @properties = @similar_products.map {|product| product.taxon.properties}.flatten.uniq
+    @properties = @similar_products.map do |product|
+      product.taxon.properties.map do |prop|
+        if prop.type_uid == UID_SET_OF_PROPERTIES && prop.children.any?
+          prop.children
+        else
+          prop
+        end
+      end
+    end
+    @properties = @properties.flatten.uniq
     
     render :show
   end
