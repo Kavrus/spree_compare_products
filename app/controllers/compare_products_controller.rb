@@ -69,11 +69,14 @@ class CompareProductsController < Spree::BaseController
   end
   
   def remove_similar
+    session[:similar_products_ids] ||= []
     session[:similar_products_ids].delete(params[:id])
     if session[:similar_products_ids].size > 1
       redirect_to request.referer
-    else
+    elsif session[:similar_products_ids].size == 1
       redirect_to product_url(session[:similar_products_ids].first)
+    else
+      redirect_to :home
     end
   end
 
