@@ -8,7 +8,7 @@ class SpreeCompareProductsHooks < Spree::ThemeSupport::HookListener
   
   insert_after :shared_login_bar, 'shared/comparable_products'
   
-  insert_after :inside_head, 'shared/compare_product_javascript'
+  #insert_after :inside_head, 'shared/compare_product_javascript'
 
   #insert_after :cart_form, 'products/compare'
   
