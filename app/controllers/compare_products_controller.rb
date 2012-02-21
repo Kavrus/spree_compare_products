@@ -22,7 +22,7 @@ class CompareProductsController < Spree::BaseController
   end
 
   def add
-    product = Product.find_by_permalink(params[:id])
+    product = Product.find(params[:id])
     if product && product.taxon.is_comparable?
       if session[:comparable_product_ids].include?(product.id)
         flash.now[:notice] = I18n.t(:already_in_list, :product => product_title(product), :scope => :compare_products)
