@@ -50,7 +50,7 @@ class CompareProductsController < Spree::BaseController
 
   def remove
     session[:comparable_product_ids] ||= []
-    product = Product.find_by_permalink(params[:id])
+    product = Product.find(params[:id])
     if product
       @deleted_product = product if session[:comparable_product_ids].include?(product.id)
       session[:comparable_product_ids].delete(product.id)
